@@ -33,11 +33,11 @@ app.use(passport.initialize());
 app.use(passport.session());
 
 const db = new pg.Client({
+  connectionString:process.env.POSTGRES_URL,
   user: process.env.POSTGRES_USER,
-  host: process.env.POSTGRES_URL,
+  host: process.env.POSTGRES_HOST,
   database: process.env.POSTGRES_DATABASE,
   password: process.env.POSTGRES_PASSWORD,
-  port: process.env.PG_PORT,
 });
 db.connect();
 
