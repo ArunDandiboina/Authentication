@@ -1,11 +1,13 @@
 import express from "express";
 import bodyParser from "body-parser";
+import ejs from "ejs";
 import pg from "pg";
 import bcrypt from "bcrypt";
 import passport from "passport";
 import { Strategy } from "passport-local";
 import GoogleStrategy from "passport-google-oauth2";
 import session from "express-session";
+import connectPgSimple from 'connect-pg-simple';
 import env from "dotenv";
 import fs from "fs";
 import path from "path";
@@ -14,35 +16,54 @@ import { fileURLToPath } from "url";
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
 const app = express();
+const pgSession = connectPgSimple(session); // Import pgSession
+
 const port = 3000;
 const saltRounds = 15;
 env.config();
 
-app.use(
-  session({
-    secret: process.env.SESSION_SECRET,
-    resave: false,
-    saveUninitialized: false,
-    cookie: {
-      maxAge: 1000 * 60 * 60 * 24,
-    }
-  }) 
-);
 
-app.use(bodyParser.urlencoded({ extended: true }));
-app.use(express.static(path.join(__dirname, "public")));
 
-app.use(passport.initialize());
-app.use(passport.session());
 
-const db = new pg.Client({
+// PostgreSQL pool for database connections and session store
+const pool = new pg.Pool({
   user: process.env.PG_USER,
   host: process.env.PG_HOST,
   database: process.env.PG_DATABASE,
   password: process.env.PG_PASSWORD,
   port: process.env.PG_PORT,  
 });
-db.connect();
+
+app.set("trust proxy", 1); // Only if behind a proxy
+
+
+app.use(
+  session({
+    store: new pgSession({       // Use pgSession for the session store
+      pool: pool,                // Pass the PostgreSQL pool to pgSession
+      tableName: 'session'       // Name of the session table
+    }),
+    secret: process.env.SESSION_SECRET,
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      maxAge: 1000 * 60 * 60 * 24,
+      sameSite: 'strict',     // Important for security (prevent CSRF)
+      secure: process.env.NODE_ENV === 'production', // Secure cookies in production
+      httpOnly: true,
+    }
+  }) 
+);
+
+
+app.set("view engine", "ejs");
+app.use(bodyParser.urlencoded({ extended: true }));
+app.use(express.static(path.join(__dirname, "public")));
+app.use(passport.initialize());
+app.use(passport.session());
+
+const db = pool; // Now 'db' is the pool
+
 
 // Database schema
 // Database schema for users and notes
@@ -224,6 +245,25 @@ passport.serializeUser((user, cb) => {
 });
 passport.deserializeUser((user, cb) => {
   cb(null, user);
+});
+
+// Error handling for the pool
+pool.on('error', (err, client) => {
+  console.error('Unexpected error on idle client', err);
+  process.exit(-1); // Exit process on connection errors (adjust as needed)
+});
+
+
+// Graceful shutdown 
+process.on('SIGINT', async () => {
+  try {
+    await pool.end(); // Close the pool gracefully
+    console.log('PostgreSQL pool has ended');
+    process.exit(0);
+  } catch (err) {
+        console.error("Error during pool ending", err);
+        process.exit(1);
+      }
 });
 
 app.listen(process.env.PORT || port, () => {
