@@ -38,26 +38,24 @@ app.set("trust proxy", 1); // Only if behind a proxy
 
 async function createSessionTable() {
   try {
-    const client = await pool.connect(); // Get a client from the pool
+    const client = await pool.connect();
 
     const createTableQuery = `
       CREATE TABLE IF NOT EXISTS "session" (
         "sid" varchar NOT NULL COLLATE "default",
         "sess" json NOT NULL,
-        "expire" timestamp(6) NOT NULL
-      )
-      WITH (OIDS=FALSE);
-      ALTER TABLE "session" ADD CONSTRAINT "session_pkey" PRIMARY KEY ("sid")
+        "expire" timestamp(6) NOT NULL,
+        PRIMARY KEY ("sid")  -- Primary key constraint inline
+      );
     `;
-
-    await client.query(createTableQuery); // Execute the query
-    client.release();  // Release the client back to the pool
-    console.log('Session table created or already exists.');
+    await client.query("DROP TABLE IF EXISTS session");
+    await client.query(createTableQuery);
+    client.release();
+    console.log('Session table created (or already exists).');
   } catch (error) {
     console.error('Error creating session table:', error);
   }
 }
-
 createSessionTable(); // Call the function to create the table at startup
 
 
