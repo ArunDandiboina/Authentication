@@ -34,6 +34,18 @@ const pool = new pg.Pool({
   port: process.env.PG_PORT,  
 });
 
+const db = pool; // Now 'db' is the pool
+
+const resetDatabase = async () => {
+  try {
+    await db.query("DELETE FROM session");
+    await db.query("DELETE FROM users2");
+    console.log("All sessions and users deleted.");
+  } catch (err) {
+    console.error("Error resetting database:", err);
+  }
+};
+resetDatabase();
 
 async function createSessionTable() {
   try {
@@ -83,7 +95,6 @@ app.use(express.static(path.join(__dirname, "public")));
 app.use(passport.initialize());
 app.use(passport.session());
 
-const db = pool; // Now 'db' is the pool
 
 
 // Database schema
@@ -100,6 +111,7 @@ const createTables = async () => {
   await db.query(createUsersTableQuery);
 };
 createTables().catch(err => console.error('Error creating tables:', err));
+
 
 
 app.get("/", (req, res) => {
@@ -124,8 +136,6 @@ app.get("/logout", (req, res) => {
 });
   
 app.get("/secrets", (req, res) => {
-  console.log("Authenticated:", req.isAuthenticated());
-  console.log("User:", req.user);
   if (req.isAuthenticated()) {
     res.render("secrets.ejs");
   } else {
@@ -269,7 +279,6 @@ passport.serializeUser((user, done) => {
 
 passport.deserializeUser(async (userId, done) => {  // userId parameter
   try {
-    console.log("Deserializing user ID:", userId); // Log the userId
 
     const user = await pool.query('SELECT * from users2 WHERE id = $1', [userId]);
     if (!user.rows[0]) {
