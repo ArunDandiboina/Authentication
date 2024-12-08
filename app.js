@@ -243,7 +243,6 @@ passport.use("google",new GoogleStrategy({
   userProfileURL:process.env.GOOGLE_PROFILE_URL,
 },async function(accessToken, refreshToken,profile,cb){
   try {
-    console.log(profile.email);
     const result = await db.query("SELECT * FROM users2 WHERE email = $1 ", [
       profile.email,
     ]);
@@ -253,8 +252,10 @@ passport.use("google",new GoogleStrategy({
         "INSERT INTO users2 (email, password) VALUES ($1, $2) RETURNING *",
         [profile.email,"google"]
       );
+      console.log(newUser.rows[0]);
       cb(null,newUser.rows[0]);
     } else {
+      console.log(result.rows[0]);
      cb(null,result.rows[0]);
     }
   } catch (err) {
