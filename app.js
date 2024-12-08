@@ -18,7 +18,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const app = express();
 const pgSession = connectPgSimple(session); // Import pgSession
 
-const port = 3000;
+const PORT = process.env.PORT || 3000;
 const saltRounds = 15;
 env.config();
 
@@ -287,6 +287,8 @@ process.on('SIGINT', async () => {
       }
 });
 
-app.listen(process.env.PORT || port, () => {
-  console.log(`Server running on port ${port}`);
+// Start server
+app.listen(PORT, () => {
+  console.log(`Server running at http://localhost:${PORT}`);
 });
+
