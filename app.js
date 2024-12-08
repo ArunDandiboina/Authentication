@@ -36,6 +36,30 @@ const pool = new pg.Pool({
 
 app.set("trust proxy", 1); // Only if behind a proxy
 
+async function createSessionTable() {
+  try {
+    const client = await pool.connect(); // Get a client from the pool
+
+    const createTableQuery = `
+      CREATE TABLE IF NOT EXISTS "session" (
+        "sid" varchar NOT NULL COLLATE "default",
+        "sess" json NOT NULL,
+        "expire" timestamp(6) NOT NULL
+      )
+      WITH (OIDS=FALSE);
+      ALTER TABLE "session" ADD CONSTRAINT "session_pkey" PRIMARY KEY ("sid")
+    `;
+
+    await client.query(createTableQuery); // Execute the query
+    client.release();  // Release the client back to the pool
+    console.log('Session table created or already exists.');
+  } catch (error) {
+    console.error('Error creating session table:', error);
+  }
+}
+
+createSessionTable(); // Call the function to create the table at startup
+
 
 app.use(
   session({
