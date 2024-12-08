@@ -135,7 +135,7 @@ app.get("/secrets", (req, res) => {
 app.get("/auth/google",passport.authenticate("google",{scope:["profile","email"]}));
 app.get("/auth/google/secrets",passport.authenticate("google",{
   successRedirect:"/secrets",
-  failureRedirect: "/login"
+  failureRedirect: "/"
 }));
 app.post(
   "/login",
