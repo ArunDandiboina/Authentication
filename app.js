@@ -124,18 +124,20 @@ app.get("/logout", (req, res) => {
 });
   
 app.get("/secrets", (req, res) => {
-  // console.log(req.user);
+  console.log("Authenticated:", req.isAuthenticated());
+  console.log("User:", req.user);
   if (req.isAuthenticated()) {
     res.render("secrets.ejs");
   } else {
-    res.redirect("/login");
+    res.redirect("/");
   }
 });
+
 
 app.get("/auth/google",passport.authenticate("google",{scope:["profile","email"]}));
 app.get("/auth/google/secrets",passport.authenticate("google",{
   successRedirect:"/secrets",
-  failureRedirect: "/"
+  failureRedirect: "/login"
 }));
 app.post(
   "/login",
