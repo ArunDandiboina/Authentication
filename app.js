@@ -48,7 +48,6 @@ async function createSessionTable() {
         PRIMARY KEY ("sid")  -- Primary key constraint inline
       );
     `;
-    await client.query("DROP TABLE IF EXISTS session");
     await client.query(createTableQuery);
     client.release();
     console.log('Session table created (or already exists).');
