@@ -264,34 +264,22 @@ passport.use("google",new GoogleStrategy({
   }
 }));
 
-passport.serializeUser((user, cb) => {
-  process.nextTick(() => { // Use process.nextTick for async operations in serializeUser
-    return cb(null, { id: user.id, name: user.name });  // Serialize user.id
-  });
+passport.serializeUser((user, done) => {
+  done(null, user.id); // serialize user id
 });
 
-passport.deserializeUser(async (user, cb) => {
+passport.deserializeUser(async (userId, done) => {  // userId parameter
   try {
-    console.log("Deserializing user:", user); 
+    console.log("Deserializing user ID:", userId); // Log the userId
 
-    const query = {
-      text: 'SELECT * FROM users2 WHERE id = $1',
-      values: [user.id],
-    };
-
-
-    const result = await pool.query(query); // Use prepared statement
-
-
-    if (result.rows.length === 1) {
-      cb(null, result.rows[0]);        // Deserialize user object
-    } else {
-      cb(new Error("User not found"), false);
+    const user = await pool.query('SELECT * from users2 WHERE id = $1', [userId]);
+    if (!user.rows[0]) {
+      return done(new Error('User not found')); // Explicitly handle the case where the user is not found.
     }
-
+    done(null, user.rows[0]); // attach user object to the request
   } catch (err) {
-    console.log("Deserialization Error:", err)
-    return cb(err, null);
+    console.error("Deserialization error:", err);
+    done(err);
   }
 });
 
