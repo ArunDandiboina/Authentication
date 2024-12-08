@@ -247,7 +247,6 @@ passport.use("google",new GoogleStrategy({
       profile.email,
     ]);
     if (result.rows.length == 0) {
-      const user = result.rows[0];
       const newUser = await db.query(
         "INSERT INTO users2 (email, password) VALUES ($1, $2) RETURNING *",
         [profile.email,"google"]
