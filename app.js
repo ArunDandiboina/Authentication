@@ -34,18 +34,18 @@ const pool = new pg.Pool({
   port: process.env.PG_PORT,  
 });
 
-const db = pool; // Now 'db' is the pool
+// const db = pool; // Now 'db' is the pool
 
-const resetDatabase = async () => {
-  try {
-    await db.query("DELETE FROM session");
-    await db.query("DELETE FROM users2");
-    console.log("All sessions and users deleted.");
-  } catch (err) {
-    console.error("Error resetting database:", err);
-  }
-};
-resetDatabase();
+// const resetDatabase = async () => {
+//   try {
+//     await db.query("DELETE FROM session");
+//     await db.query("DELETE FROM users2");
+//     console.log("All sessions and users deleted.");
+//   } catch (err) {
+//     console.error("Error resetting database:", err);
+//   }
+// };
+// resetDatabase();
 
 async function createSessionTable() {
   try {
@@ -87,6 +87,8 @@ app.use(session({
 if (process.env.NODE_ENV === 'production'){
   app.set('trust proxy', 1); // trust first proxy if using render
 }
+
+const db = pool; // Now 'db' is the pool
 
 
 app.set("view engine", "ejs");
@@ -240,7 +242,7 @@ passport.use("local",
           }
         });
       } else {
-        return cb("User not found");
+        return cb(null, false);
       }
     } catch (err) {
       return cb(err)
@@ -273,22 +275,11 @@ passport.use("google",new GoogleStrategy({
   }
 }));
 
-passport.serializeUser((user, done) => {
-  done(null, user.id); // serialize user id
+passport.serializeUser((user, cb) => {
+  cb(null, user);
 });
-
-passport.deserializeUser(async (userId, done) => {  // userId parameter
-  try {
-
-    const user = await pool.query('SELECT * from users2 WHERE id = $1', [userId]);
-    if (!user.rows[0]) {
-      return done(new Error('User not found')); // Explicitly handle the case where the user is not found.
-    }
-    done(null, user.rows[0]); // attach user object to the request
-  } catch (err) {
-    console.error("Deserialization error:", err);
-    done(err);
-  }
+passport.deserializeUser((user, cb) => {
+  cb(null, user);
 });
 
 // Error handling for the pool
