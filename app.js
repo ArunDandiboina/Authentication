@@ -252,10 +252,8 @@ passport.use("google",new GoogleStrategy({
         "INSERT INTO users2 (email, password) VALUES ($1, $2) RETURNING *",
         [profile.email,"google"]
       );
-      console.log(newUser.rows[0]);
       cb(null,newUser.rows[0]);
     } else {
-      console.log(result.rows[0]);
      cb(null,result.rows[0]);
     }
   } catch (err) {
@@ -265,10 +263,20 @@ passport.use("google",new GoogleStrategy({
 }));
 
 passport.serializeUser((user, cb) => {
-  cb(null, user);
+  cb(null, user.id);
 });
-passport.deserializeUser((user, cb) => {
-  cb(null, user);
+
+passport.deserializeUser(async (id, cb) => {
+  try {
+    const result = await db.query("SELECT * FROM users2 WHERE id = $1", [id]);
+    if (result.rows.length > 0) {
+      cb(null, result.rows[0]);
+    } else {
+      cb(null, false);
+    }
+  } catch (err) {
+    cb(err, null);
+  }
 });
 
 // Error handling for the pool
