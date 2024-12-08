@@ -49,7 +49,6 @@ async function createSessionTable() {
     `;
     await client.query(createTableQuery);
     client.release();
-    console.log('Session table created (or already exists).');
   } catch (error) {
     console.error('Error creating session table:', error);
   }
@@ -130,7 +129,7 @@ app.get("/secrets", (req, res) => {
   if (req.isAuthenticated()) {
     res.render("secrets.ejs");
   } else {
-    res.redirect("/");
+    res.redirect("/login");
   }
 });
 
