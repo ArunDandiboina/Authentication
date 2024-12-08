@@ -67,7 +67,7 @@ app.use(session({
   saveUninitialized: false,          // Also false, improves security
   cookie: {
     maxAge: 1000 * 60 * 60 * 24, 
-    sameSite: 'strict',         
+    sameSite: 'lax',         
     secure: process.env.NODE_ENV === 'production',  // Use HTTPS when in production
     httpOnly: true
   }
@@ -138,7 +138,7 @@ app.get("/secrets", (req, res) => {
 app.get("/auth/google",passport.authenticate("google",{scope:["profile","email"]}));
 app.get("/auth/google/secrets",passport.authenticate("google",{
   successRedirect:"/secrets",
-  failureRedirect: "/login"
+  failureRedirect: "/login",
 }));
 app.post(
   "/login",
