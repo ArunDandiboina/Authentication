@@ -243,6 +243,7 @@ passport.use("google",new GoogleStrategy({
   userProfileURL:process.env.GOOGLE_PROFILE_URL,
 },async function(accessToken, refreshToken,profile,cb){
   try {
+    console.log(profile.email);
     const result = await db.query("SELECT * FROM users2 WHERE email = $1 ", [
       profile.email,
     ]);
@@ -257,6 +258,7 @@ passport.use("google",new GoogleStrategy({
      cb(null,result.rows[0]);
     }
   } catch (err) {
+    console.log("Try error")
     cb(err); 
   }
 }));
