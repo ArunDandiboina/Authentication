@@ -34,7 +34,6 @@ const pool = new pg.Pool({
   port: process.env.PG_PORT,  
 });
 
-app.set("trust proxy", 1); // Only if behind a proxy
 
 async function createSessionTable() {
   try {
@@ -58,23 +57,25 @@ async function createSessionTable() {
 createSessionTable(); // Call the function to create the table at startup
 
 
-app.use(
-  session({
-    store: new pgSession({       // Use pgSession for the session store
-      pool: pool,                // Pass the PostgreSQL pool to pgSession
-      tableName: 'session'       // Name of the session table
-    }),
-    secret: process.env.SESSION_SECRET,
-    resave: false,
-    saveUninitialized: false,
-    cookie: {
-      maxAge: 1000 * 60 * 60 * 24,
-      sameSite: 'strict',     // Important for security (prevent CSRF)
-      secure: process.env.NODE_ENV === 'production', // Secure cookies in production
-      httpOnly: true,
-    }
-  }) 
-);
+app.use(session({
+  store: new pgSession({
+    pool,
+    tableName: 'session' 
+  }),
+  secret: process.env.SESSION_SECRET,
+  resave: false,                     // Must be false if using connect-pg-simple
+  saveUninitialized: false,          // Also false, improves security
+  cookie: {
+    maxAge: 1000 * 60 * 60 * 24, 
+    sameSite: 'strict',         
+    secure: process.env.NODE_ENV === 'production',  // Use HTTPS when in production
+    httpOnly: true
+  }
+}));
+
+if (process.env.NODE_ENV === 'production'){
+  app.set('trust proxy', 1); // trust first proxy if using render
+}
 
 
 app.set("view engine", "ejs");
@@ -264,19 +265,33 @@ passport.use("google",new GoogleStrategy({
 }));
 
 passport.serializeUser((user, cb) => {
-  cb(null, user.id);
+  process.nextTick(() => { // Use process.nextTick for async operations in serializeUser
+    return cb(null, { id: user.id, name: user.name });  // Serialize user.id
+  });
 });
 
-passport.deserializeUser(async (id, cb) => {
+passport.deserializeUser(async (user, cb) => {
   try {
-    const result = await db.query("SELECT * FROM users2 WHERE id = $1", [id]);
-    if (result.rows.length > 0) {
-      cb(null, result.rows[0]);
+    console.log("Deserializing user:", user); 
+
+    const query = {
+      text: 'SELECT * FROM users2 WHERE id = $1',
+      values: [user.id],
+    };
+
+
+    const result = await pool.query(query); // Use prepared statement
+
+
+    if (result.rows.length === 1) {
+      cb(null, result.rows[0]);        // Deserialize user object
     } else {
-      cb(null, false);
+      cb(new Error("User not found"), false);
     }
+
   } catch (err) {
-    cb(err, null);
+    console.log("Deserialization Error:", err)
+    return cb(err, null);
   }
 });
 
