@@ -34,18 +34,18 @@ const pool = new pg.Pool({
   port: process.env.PG_PORT,  
 });
 
-// const db = pool; // Now 'db' is the pool
+const db = pool; // Now 'db' is the pool
 
-// const resetDatabase = async () => {
-//   try {
-//     await db.query("DELETE FROM session");
-//     await db.query("DELETE FROM users2");
-//     console.log("All sessions and users deleted.");
-//   } catch (err) {
-//     console.error("Error resetting database:", err);
-//   }
-// };
-// resetDatabase();
+const resetDatabase = async () => {
+  try {
+    await db.query("DELETE FROM session");
+    await db.query("DELETE FROM users2");
+    console.log("All sessions and users deleted.");
+  } catch (err) {
+    console.error("Error resetting database:", err);
+  }
+};
+resetDatabase();
 
 async function createSessionTable() {
   try {
@@ -88,7 +88,7 @@ if (process.env.NODE_ENV === 'production'){
   app.set('trust proxy', 1); // trust first proxy if using render
 }
 
-const db = pool; // Now 'db' is the pool
+// const db = pool; // Now 'db' is the pool
 
 
 app.set("view engine", "ejs");
@@ -257,7 +257,7 @@ passport.use("google",new GoogleStrategy({
   userProfileURL:process.env.GOOGLE_PROFILE_URL,
 },async function(accessToken, refreshToken,profile,cb){
   try {
-    const result = await db.query("SELECT * FROM users2 WHERE email = $1 ", [
+    const result = await db.query("SELECT * FROM users2 WHERE email = $1", [
       profile.email,
     ]);
     if (result.rows.length == 0) {
